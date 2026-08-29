@@ -46,6 +46,8 @@ def fetch_rows(since: str | None) -> list[dict]:
     if since and DATABRICKS_UPDATED_COLUMN:
         query += f" WHERE {DATABRICKS_UPDATED_COLUMN} > '{since}'"
 
+    # First query after the warehouse has auto-suspended can take a few minutes to start.
+    print(f"Connecting to Databricks warehouse at {DATABRICKS_HOST}...", flush=True)
     with databricks_sql.connect(
         server_hostname=DATABRICKS_HOST,
         http_path=DATABRICKS_HTTP_PATH,
@@ -70,11 +72,7 @@ def rows_to_documents(rows: list[dict]) -> list[discoveryengine.Document]:
     return documents
 
 
-def import_documents(documents: list[discoveryengine.Document], reconciliation_mode) -> None:
-    if not documents:
-        print("No rows to sync.")
-        return
-
+def import_documents(documents: list[discoveryengine.Document], full_refresh: bool) -> None:
     client_options = (
         ClientOptions(api_endpoint=f"{GCP_LOCATION}-discoveryengine.googleapis.com")
         if GCP_LOCATION != "global"
@@ -88,6 +86,20 @@ def import_documents(documents: list[discoveryengine.Document], reconciliation_m
         branch="default_branch",
     )
 
+    # ImportDocuments only supports FULL reconciliation for GCS/BigQuery sources, not
+    # inline documents. Emulate a full refresh by purging stale docs first, then
+    # upserting the current rows with INCREMENTAL.
+    if full_refresh:
+        purge_operation = client.purge_documents(
+            request=discoveryengine.PurgeDocumentsRequest(parent=parent, filter="*")
+        )
+        purge_operation.result()
+        print("Purged existing documents for full refresh.", flush=True)
+
+    if not documents:
+        print("No rows to sync.", flush=True)
+        return
+
     for i in range(0, len(documents), IMPORT_BATCH_SIZE):
         batch = documents[i : i + IMPORT_BATCH_SIZE]
         operation = client.import_documents(
@@ -96,11 +108,11 @@ def import_documents(documents: list[discoveryengine.Document], reconciliation_m
                 inline_source=discoveryengine.ImportDocumentsRequest.InlineSource(
                     documents=batch
                 ),
-                reconciliation_mode=reconciliation_mode,
+                reconciliation_mode=discoveryengine.ImportDocumentsRequest.ReconciliationMode.INCREMENTAL,
             )
         )
         operation.result()
-        print(f"Synced {len(batch)} rows ({i + len(batch)}/{len(documents)}).")
+        print(f"Synced {len(batch)} rows ({i + len(batch)}/{len(documents)}).", flush=True)
 
 
 def run_once() -> None:
@@ -109,12 +121,7 @@ def run_once() -> None:
 
     rows = fetch_rows(since)
     documents = rows_to_documents(rows)
-    reconciliation_mode = (
-        discoveryengine.ImportDocumentsRequest.ReconciliationMode.INCREMENTAL
-        if incremental
-        else discoveryengine.ImportDocumentsRequest.ReconciliationMode.FULL
-    )
-    import_documents(documents, reconciliation_mode)
+    import_documents(documents, full_refresh=not incremental)
 
     if DATABRICKS_UPDATED_COLUMN and rows:
         latest = max(str(row[DATABRICKS_UPDATED_COLUMN]) for row in rows)

@@ -1,0 +1,45 @@
+steps:
+  # 1. Build the unified server image
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - Dockerfile.server
+      - -t
+      - ${_IMAGE}
+      - .
+
+  # 2. Push to Artifact Registry
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_IMAGE}
+
+  # 3. Deploy to Cloud Run
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - databricks-connector
+      - --image=${_IMAGE}
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-env-vars=DATABRICKS_HOST=${_DB_HOST},DATABRICKS_HTTP_PATH=${_DB_HTTP_PATH},DATABRICKS_CATALOG=${_DB_CATALOG},DATABRICKS_SCHEMA=${_DB_SCHEMA},DATABRICKS_TABLE=${_DB_TABLE},DATABRICKS_ID_COLUMN=${_DB_ID_COL},DATABRICKS_UPDATED_COLUMN=${_DB_UPDATED_COL},DATABRICKS_TOKEN=${_DB_TOKEN},WRITEBACK_API_KEY=${_API_KEY}
+
+images:
+  - ${_IMAGE}
+
+substitutions:
+  _REGION: us-central1
+  _IMAGE: us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/databricks-connector:${SHORT_SHA}
+  _DB_HOST: ""
+  _DB_HTTP_PATH: ""
+  _DB_CATALOG: hackathon_db
+  _DB_SCHEMA: inventory_system
+  _DB_TABLE: products
+  _DB_ID_COL: product_id
+  _DB_UPDATED_COL: last_updated
+  _DB_TOKEN: ""
+  _API_KEY: ""

@@ -14,7 +14,15 @@ sync_databricks_to_datastore.py
         │  Discovery Engine Document Service (import/upsert)
         ▼
 Vertex AI Search Data Store  ──►  Gemini Enterprise app (you attach this data store)
+                                          │
+                                          │  writes (custom Action, openapi_writeback.yaml)
+                                          ▼
+                                  writeback_server.py ──► Databricks (UPDATE)
 ```
+
+Reads are grounded on the data store; writes go through a separate API because data
+stores are read-only. A write sets the `last_updated` column, so the next sync pass
+propagates it back into the data store.
 
 There is no live query-time connector — rows are periodically upserted into the data
 store, which Gemini Enterprise then searches/grounds on directly. Run the sync
@@ -33,6 +41,13 @@ frequently (loop mode, or a scheduled job every 1–5 min) to keep it near-real-
   - **Run mode** — `SYNC_MODE=once` for a single pass (e.g. triggered by Cloud
     Scheduler), or `SYNC_MODE=loop` to poll continuously every `SYNC_INTERVAL_SECONDS`.
 - **`Dockerfile`** — container image for running the sync as a Cloud Run Job/service.
+- **`writeback_server.py`** — FastAPI service the agent calls to update Databricks rows.
+  Only whitelisted columns (`stock_count`, `price`, `category`, `product_name`) can be
+  written, values are bound as query parameters, and requests require an `X-API-Key`
+  header matching `WRITEBACK_API_KEY`.
+- **`openapi_writeback.yaml`** — OpenAPI spec to import when registering the write-back
+  API as a custom Action in Gemini Enterprise.
+- **`Dockerfile.writeback`** — container image for the write-back service.
 
 ## Setup
 
@@ -85,6 +100,59 @@ continuously running sync instead of a scheduled job.)
 In the Gemini Enterprise / Agentspace console, create or edit your app and attach the
 data store (`DATASTORE_ID`) as a data source. Once attached, the app can answer
 natural-language questions grounded on the synced Databricks rows.
+
+## Write-back
+
+Run the write-back API locally:
+
+```bash
+uvicorn writeback_server:app --reload --port 8000
+```
+
+Test it:
+
+```bash
+curl -X POST http://localhost:8000/tools/update_product \
+  -H "X-API-Key: $WRITEBACK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": "P101", "column": "stock_count", "value": "20"}'
+```
+
+Deploy it. `Dockerfile` is the sync image, so the write-back service is built from
+`Dockerfile.writeback` via a Cloud Build config. Cloud Run's `--env-vars-file` expects
+YAML, so generate one from `.env` first (it holds secrets and is gitignored):
+
+```bash
+python3 - <<'EOF'
+import pathlib
+keep = ["DATABRICKS_HOST","DATABRICKS_HTTP_PATH","DATABRICKS_TOKEN","DATABRICKS_CATALOG",
+        "DATABRICKS_SCHEMA","DATABRICKS_TABLE","DATABRICKS_ID_COLUMN",
+        "DATABRICKS_UPDATED_COLUMN","WRITEBACK_API_KEY"]
+env = dict(
+    line.split("=", 1)
+    for line in (l.strip() for l in pathlib.Path(".env").read_text().splitlines())
+    if line and not line.startswith("#") and "=" in line
+)
+pathlib.Path("env.writeback.yaml").write_text(
+    "\n".join(f'{k}: "{env[k]}"' for k in keep if k in env) + "\n"
+)
+EOF
+
+gcloud builds submit \
+  --config cloudbuild.writeback.yaml \
+  --substitutions _IMAGE=gcr.io/<project-id>/databricks-writeback
+
+gcloud run deploy databricks-writeback \
+  --image gcr.io/<project-id>/databricks-writeback \
+  --region <your-region> \
+  --env-vars-file env.writeback.yaml
+```
+
+Then in the Gemini Enterprise console, add a custom **Action** to your app and import
+[openapi_writeback.yaml](openapi_writeback.yaml), setting `servers.url` to the deployed
+Cloud Run URL and configuring the API key as the `X-API-Key` header value. The agent can
+then handle requests like "set stock for P101 to 20", and the change appears in query
+results after the next sync pass.
 
 ## Security notes
 

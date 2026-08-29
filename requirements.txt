@@ -1,3 +1,12 @@
 python-dotenv==1.0.1
 databricks-sql-connector==4.0.0
+databricks-sdk==0.56.0
 google-cloud-discoveryengine==0.13.5
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+
+# Local dev only: if your machine's network does TLS inspection (corporate VPN/MDM
+# agent), install this so Python trusts the same OS certificate store curl does.
+# Not needed when deployed to Cloud Run.
+# pip-system-certs

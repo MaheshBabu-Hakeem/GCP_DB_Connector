@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Databricks Connector for Gemini Enterprise
+  description: >
+    Unified read and write access to Databricks for Gemini Enterprise agents.
+    Reads discover schema and run SELECT queries with PII redaction.
+    Writes update whitelisted columns on product rows.
+  version: 1.0.0
+servers:
+  - url: https://databricks-connector-2qa62z4rda-uc.a.run.app
+    description: Databricks unified connector deployed on Cloud Run
+
+security:
+  - apiKey: []
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+
+  /tools/get_schema:
+    post:
+      operationId: get_schema
+      summary: Discover Unity Catalog tables and columns
+      description: >
+        Returns all tables and their column definitions from the given Databricks
+        catalog and schema. Call this first before writing any SQL query.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                catalog:
+                  type: string
+                  description: Unity Catalog name (defaults to configured catalog)
+                  default: hackathon_db
+                schema_name:
+                  type: string
+                  description: Schema name (defaults to configured schema)
+                  default: inventory_system
+      responses:
+        "200":
+          description: Schema information returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  catalog:
+                    type: string
+                  schema:
+                    type: string
+                  tables:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        table_name:
+                          type: string
+                        columns:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              type:
+                                type: string
+        "401":
+          description: Missing or invalid API key
+        "502":
+          description: Databricks schema discovery failed
+
+  /tools/execute_sql:
+    post:
+      operationId: execute_sql
+      summary: Execute a read-only SQL query with PII redaction
+      description: >
+        Executes a SELECT query on the Databricks SQL Warehouse and returns results
+        with PII (emails, SSNs, credit cards) automatically redacted.
+        Destructive statements (DROP, DELETE, UPDATE, INSERT, ALTER, TRUNCATE) are blocked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sql_query
+              properties:
+                sql_query:
+                  type: string
+                  description: SQL SELECT query to execute, e.g. "SELECT * FROM hackathon_db.inventory_system.products WHERE stock_count < 10"
+      responses:
+        "200":
+          description: Query result or blocked/failed status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [SUCCESS, BLOCKED, FAILED]
+                  data:
+                    type: string
+                    description: Query result as a string (PII redacted)
+                  reason:
+                    type: string
+                    description: Present when status is BLOCKED
+                  error:
+                    type: string
+                    description: Present when status is FAILED
+        "401":
+          description: Missing or invalid API key
+        "502":
+          description: Databricks SQL execution failed
+
+  /tools/update_product:
+    post:
+      operationId: update_product
+      summary: Update a single whitelisted column on one product row
+      description: >
+        Updates one column (stock_count, price, category, or product_name)
+        for the product identified by product_id, and returns the full updated row.
+        Also sets last_updated timestamp so the sync job propagates the change to the data store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - column
+                - value
+              properties:
+                product_id:
+                  type: string
+                  description: ID of the product row to update, e.g. "P101"
+                column:
+                  type: string
+                  description: Column to update
+                  enum:
+                    - stock_count
+                    - price
+                    - category
+                    - product_name
+                value:
+                  type: string
+                  description: New value, coerced to the column's type
+      responses:
+        "200":
+          description: Row updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  row:
+                    type: object
+                    additionalProperties:
+                      type: string
+        "400":
+          description: Column not writable or value invalid for the column type
+        "401":
+          description: Missing or invalid API key
+        "404":
+          description: No product found with that product_id
+        "502":
+          description: Databricks update failed
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Shared secret matching WRITEBACK_API_KEY on the server.

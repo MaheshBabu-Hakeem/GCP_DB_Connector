@@ -150,6 +150,9 @@ activemq-data/
 # Environments
 .env
 .envrc
+
+# Sync state
+.last_sync
 .venv
 env/
 venv/
@@ -216,3 +219,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Generated env file for Cloud Run deploys (contains secrets)
+env.writeback.yaml

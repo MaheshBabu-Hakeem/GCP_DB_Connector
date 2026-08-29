@@ -125,6 +125,63 @@ paths:
         "502":
           description: Databricks SQL execution failed
 
+  /tools/insert_product:
+    post:
+      operationId: insert_product
+      summary: Insert a new product row into Databricks
+      description: >
+        Creates a brand-new product row in the Databricks inventory table.
+        Use this when the product does not yet exist. Fails if the product_id already exists.
+        The last_updated timestamp is set automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - product_name
+                - category
+                - price
+                - stock_count
+              properties:
+                product_id:
+                  type: string
+                  description: Unique product ID, e.g. "P112"
+                product_name:
+                  type: string
+                  description: Name of the product
+                category:
+                  type: string
+                  description: Category, e.g. "Electronics" or "Furniture"
+                price:
+                  type: number
+                  description: Price as a decimal number
+                stock_count:
+                  type: integer
+                  description: Initial stock count
+      responses:
+        "200":
+          description: Product inserted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  row:
+                    type: object
+                    additionalProperties:
+                      type: string
+        "401":
+          description: Missing or invalid API key
+        "502":
+          description: Databricks insert failed
+
   /tools/update_product:
     post:
       operationId: update_product

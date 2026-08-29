@@ -1,10 +1,8 @@
 steps:
-  # 1. Build the unified server image
+  # 1. Build the connector image
   - name: gcr.io/cloud-builders/docker
     args:
       - build
-      - -f
-      - Dockerfile.server
       - -t
       - ${_IMAGE}
       - .
@@ -15,7 +13,7 @@ steps:
       - push
       - ${_IMAGE}
 
-  # 3. Deploy to Cloud Run
+  # 3. Deploy to Cloud Run (always-on: --min-instances=1 keeps the sync thread alive)
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
@@ -26,20 +24,25 @@ steps:
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
-      - --set-env-vars=DATABRICKS_HOST=${_DB_HOST},DATABRICKS_HTTP_PATH=${_DB_HTTP_PATH},DATABRICKS_CATALOG=${_DB_CATALOG},DATABRICKS_SCHEMA=${_DB_SCHEMA},DATABRICKS_TABLE=${_DB_TABLE},DATABRICKS_ID_COLUMN=${_DB_ID_COL},DATABRICKS_UPDATED_COLUMN=${_DB_UPDATED_COL},DATABRICKS_TOKEN=${_DB_TOKEN},WRITEBACK_API_KEY=${_API_KEY}
+      - --min-instances=1
+      - --set-env-vars=DATABRICKS_HOST=${_DB_HOST},DATABRICKS_HTTP_PATH=${_DB_HTTP_PATH},DATABRICKS_TOKEN=${_DB_TOKEN},DATABRICKS_CATALOG=${_DB_CATALOG},DATABRICKS_SCHEMA=${_DB_SCHEMA},DATABRICKS_TABLE=${_DB_TABLE},DATABRICKS_ID_COLUMN=${_DB_ID_COL},DATABRICKS_UPDATED_COLUMN=${_DB_UPDATED_COL},GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION=${_GCP_LOCATION},DATASTORE_ID=${_DATASTORE_ID},GCS_BUCKET_NAME=${_GCS_BUCKET},SYNC_MODE=loop,SYNC_INTERVAL_SECONDS=${_SYNC_INTERVAL},WRITEBACK_API_KEY=${_API_KEY}
 
 images:
   - ${_IMAGE}
 
 substitutions:
   _REGION: us-central1
+  _GCP_LOCATION: global
   _IMAGE: us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/databricks-connector:${SHORT_SHA}
   _DB_HOST: ""
   _DB_HTTP_PATH: ""
+  _DB_TOKEN: ""
   _DB_CATALOG: hackathon_db
   _DB_SCHEMA: inventory_system
   _DB_TABLE: products
   _DB_ID_COL: product_id
   _DB_UPDATED_COL: last_updated
-  _DB_TOKEN: ""
   _API_KEY: ""
+  _DATASTORE_ID: databricks-inventory-datastore
+  _GCS_BUCKET: ""
+  _SYNC_INTERVAL: "60"

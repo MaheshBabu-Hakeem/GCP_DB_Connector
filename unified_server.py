@@ -1,16 +1,22 @@
 """Unified Databricks connector for Gemini Enterprise.
 
-Single API surface for reads (schema discovery, SQL queries) and
-writes (product row updates). All endpoints share one auth method:
-X-API-Key header matching WRITEBACK_API_KEY in the environment.
+Single Cloud Run service that does everything:
+  - On startup: creates the Vertex AI Search data store (idempotent) and
+    ensures the GCS staging bucket exists.
+  - Background thread: continuously syncs Databricks rows → GCS bucket (NDJSON)
+    → Vertex AI Search so the Gemini Enterprise app always has fresh data.
+  - REST API: Gemini Enterprise calls these tools to discover schema, run
+    read-only SQL queries, and write changes back to Databricks.
 
-Reads use the Databricks SDK (WorkspaceClient) for schema discovery
-and SQL execution. Writes use the SQL connector for transactional UPDATE.
-PII in query results is automatically redacted before returning.
+All tool endpoints require an X-API-Key header matching WRITEBACK_API_KEY.
+The /healthz and /sync/status endpoints are unauthenticated.
 """
 import os
 import re
 import secrets
+import threading
+import time
+from contextlib import asynccontextmanager
 
 from databricks import sql as databricks_sql
 from databricks.sdk import WorkspaceClient
@@ -20,6 +26,14 @@ from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 load_dotenv()
+
+# Import after load_dotenv so module-level env reads in these modules succeed
+from create_datastore import create_data_store  # noqa: E402
+from sync_databricks_to_datastore import (  # noqa: E402
+    SYNC_INTERVAL_SECONDS,
+    ensure_gcs_bucket,
+    run_once,
+)
 
 DATABRICKS_HOST = os.environ["DATABRICKS_HOST"]
 DATABRICKS_HTTP_PATH = os.environ["DATABRICKS_HTTP_PATH"]
@@ -31,12 +45,9 @@ DATABRICKS_ID_COLUMN = os.environ.get("DATABRICKS_ID_COLUMN", "id")
 DATABRICKS_UPDATED_COLUMN = os.environ.get("DATABRICKS_UPDATED_COLUMN", "")
 API_KEY = os.environ["WRITEBACK_API_KEY"]
 
-# Derive warehouse ID from HTTP path (/sql/1.0/warehouses/<id>) if not set explicitly.
 _path_parts = DATABRICKS_HTTP_PATH.rstrip("/").split("/")
 SQL_WAREHOUSE_ID = os.environ.get("DATABRICKS_SQL_WAREHOUSE_ID") or _path_parts[-1]
 
-# Only these columns may be written — anything else is rejected so the model
-# can never steer an UPDATE at an arbitrary column.
 WRITABLE_COLUMNS: dict[str, type] = {
     "stock_count": int,
     "price": float,
@@ -46,14 +57,62 @@ WRITABLE_COLUMNS: dict[str, type] = {
 
 TABLE = f"{DATABRICKS_CATALOG}.{DATABRICKS_SCHEMA}.{DATABRICKS_TABLE}"
 
+_sync_state: dict = {
+    "running": False,
+    "last_run_epoch": None,
+    "last_rows_synced": 0,
+    "last_error": None,
+}
+
+
+def _sync_loop() -> None:
+    while True:
+        _sync_state["running"] = True
+        try:
+            rows = run_once()
+            _sync_state["last_run_epoch"] = time.time()
+            _sync_state["last_rows_synced"] = rows
+            _sync_state["last_error"] = None
+        except Exception as exc:
+            _sync_state["last_error"] = str(exc)
+            print(f"[sync] error: {exc}", flush=True)
+        finally:
+            _sync_state["running"] = False
+        time.sleep(SYNC_INTERVAL_SECONDS)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 1. Create Vertex AI Search data store (safe to call on every restart)
+    try:
+        create_data_store()
+    except Exception as exc:
+        print(f"[startup] datastore init warning (non-fatal): {exc}", flush=True)
+
+    # 2. Ensure GCS staging bucket exists
+    try:
+        ensure_gcs_bucket()
+    except Exception as exc:
+        print(f"[startup] GCS bucket init warning (non-fatal): {exc}", flush=True)
+
+    # 3. Start background sync thread (daemon so it dies if the process exits)
+    t = threading.Thread(target=_sync_loop, daemon=True)
+    t.start()
+    print("[startup] background sync thread started.", flush=True)
+
+    yield
+
+
 app = FastAPI(
     title="Databricks Connector for Gemini Enterprise",
     description=(
-        "Unified read and write access to Databricks for Gemini Enterprise agents. "
+        "Unified read and write access to Databricks for Gemini Enterprise. "
         "Reads discover schema and execute SELECT queries with PII redaction. "
-        "Writes update whitelisted columns on product rows."
+        "Writes update whitelisted columns on product rows. "
+        "A background thread keeps the Vertex AI Search data store in sync."
     ),
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -124,12 +183,25 @@ def root():
         "service": "databricks-gemini-connector",
         "status": "HEALTHY",
         "tools": ["/tools/get_schema", "/tools/execute_sql", "/tools/update_product"],
+        "sync": "/sync/status",
     }
 
 
 @app.get("/healthz")
 def health_check():
     return {"status": "HEALTHY", "service": "databricks-gemini-connector"}
+
+
+@app.get("/sync/status")
+def sync_status():
+    """Current state of the background Databricks → Vertex AI Search sync."""
+    return {
+        "running": _sync_state["running"],
+        "last_run_epoch": _sync_state["last_run_epoch"],
+        "last_rows_synced": _sync_state["last_rows_synced"],
+        "last_error": _sync_state["last_error"],
+        "interval_seconds": SYNC_INTERVAL_SECONDS,
+    }
 
 
 @app.post(
@@ -150,11 +222,11 @@ def get_schema(req: SchemaRequest):
             for t in tables
         ]
         return {"status": "SUCCESS", "catalog": req.catalog, "schema": req.schema_name, "tables": schema_info}
-    except Exception as e:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Schema discovery failed: {e}",
-        ) from e
+            detail=f"Schema discovery failed: {exc}",
+        ) from exc
 
 
 @app.post(
@@ -185,11 +257,11 @@ def execute_sql(req: QueryRequest):
         if response.status.state == StatementState.SUCCEEDED:
             return {"status": "SUCCESS", "data": _sanitize_pii(str(response.result.as_dict()))}
         return {"status": "FAILED", "error": str(response.status.error)}
-    except Exception as e:
+    except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"SQL execution failed: {e}",
-        ) from e
+            detail=f"SQL execution failed: {exc}",
+        ) from exc
 
 
 @app.post(
@@ -200,7 +272,7 @@ def execute_sql(req: QueryRequest):
 def update_product(req: UpdateProductRequest):
     """Updates one column on the product identified by product_id.
     Only stock_count, price, category, and product_name are writable.
-    Sets last_updated timestamp automatically so the sync job picks up the change.
+    Sets last_updated timestamp automatically so the next sync picks up the change.
     """
     if req.column not in WRITABLE_COLUMNS:
         raise HTTPException(

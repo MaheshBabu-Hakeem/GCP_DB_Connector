@@ -7,8 +7,8 @@ info:
     Writes update whitelisted columns on product rows.
   version: 1.0.0
 servers:
-  - url: https://databricks-connector-2qa62z4rda-uc.a.run.app
-    description: Databricks unified connector deployed on Cloud Run
+  - url: https://YOUR_CLOUD_RUN_URL
+    description: Databricks unified connector deployed on Cloud Run (update after deploy)
 
 security:
   - apiKey: []

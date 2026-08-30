@@ -7,6 +7,16 @@
 
 ---
 
+## Team Members
+
+- Chandra Sekhar Mangali
+- MaheshBabu Hakeem
+- Venkatesan S G
+- YashPratap Singh
+- Uday Nagisetti
+
+---
+
 ## Problem Statement
 
 Enterprise data teams store critical business data — inventory, products, transactions — inside **Databricks** lakehouses. Business users and AI assistants cannot query or update this data directly without writing SQL, setting up ETL pipelines, or waiting for manual exports. This creates a slow, error-prone gap between the data and the people who need it.
@@ -42,6 +52,7 @@ Built as a single **Cloud Run** service with a background sync thread, it contin
 
 ## Table of Contents
 
+- [Team Members](#team-members)
 - [Problem Statement](#problem-statement)
 - [Solution](#solution)
 - [Features](#features)
@@ -517,16 +528,6 @@ gcloud services enable \
 - [MCP Specification](https://modelcontextprotocol.io/specification)
 - [MCP SSE Transport](https://modelcontextprotocol.io/docs/concepts/transports)
 - [Claude Desktop MCP Configuration](https://claude.ai/download)
-
----
-
-## Team Members
-
-- Chandra Sekhar Mangali
-- MaheshBabu Hakeem
-- Venkatesan S G
-- YashPratap Singh
-- Uday Nagisetti
 
 ---
 

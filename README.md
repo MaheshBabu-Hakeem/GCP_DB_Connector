@@ -1,3 +1,7 @@
+<div align="right">
+  <img src="datapilot-logo.png" alt="DataPilot Logo" width="180"/>
+</div>
+
 # Databricks Connector for Gemini Enterprise
 
 A unified, always-on connector that gives **Gemini Enterprise** live read and write access to **Databricks** — no manual exports, no stale data.
@@ -481,6 +485,16 @@ gcloud services enable \
 - [MCP Specification](https://modelcontextprotocol.io/specification)
 - [MCP SSE Transport](https://modelcontextprotocol.io/docs/concepts/transports)
 - [Claude Desktop MCP Configuration](https://claude.ai/download)
+
+---
+
+## Team Members
+
+- Chandra Sekhar Mangali
+- MaheshBabu Hakeem
+- Venkatesan S G
+- YashPratap Singh
+- Uday Nagisetti
 
 ---
 

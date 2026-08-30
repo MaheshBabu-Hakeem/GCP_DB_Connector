@@ -1,4 +1,4 @@
-<div align="right">
+<div align="center">
   <img src="datapilot-logo.png" alt="DataPilot Logo" width="180"/>
 </div>
 

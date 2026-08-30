@@ -7,6 +7,31 @@
 
 ---
 
+## Table of Contents
+
+- [Team Members](#team-members)
+- [Problem Statement](#problem-statement)
+- [Solution](#solution)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Target Audience](#target-audience)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Environment Variables](#environment-variables)
+- [API Endpoints](#api-endpoints)
+- [Local Development & Testing](#local-development--testing)
+- [Deploy to Cloud Run](#deploy-to-cloud-run)
+- [Attach to Gemini Enterprise](#attach-to-gemini-enterprise)
+- [MCP Server](#mcp-server)
+- [IAM Permissions](#iam-permissions)
+- [Technical Architecture](#technical-architecture)
+- [Security Notes](#security-notes)
+- [Limitations](#limitations)
+- [Useful Links & References](#useful-links--references)
+
+---
+
 ## Team Members
 
 - Chandra Sekhar Mangali
@@ -50,30 +75,6 @@ Built as a single **Cloud Run** service with a background sync thread, it contin
 
 ---
 
-## Table of Contents
-
-- [Team Members](#team-members)
-- [Problem Statement](#problem-statement)
-- [Solution](#solution)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Target Audience](#target-audience)
-- [Project Structure](#project-structure)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Environment Variables](#environment-variables)
-- [API Endpoints](#api-endpoints)
-- [Local Development & Testing](#local-development--testing)
-- [Deploy to Cloud Run](#deploy-to-cloud-run)
-- [Attach to Gemini Enterprise](#attach-to-gemini-enterprise)
-- [MCP Server](#mcp-server)
-- [IAM Permissions](#iam-permissions)
-- [Technical Architecture](#technical-architecture)
-- [Security Notes](#security-notes)
-- [Useful Links & References](#useful-links--references)
-
----
-
 ## Features
 
 - **Live SQL Queries**: Gemini calls `/tools/execute_sql` and gets real-time results directly from Databricks — no caching layer.
@@ -89,7 +90,7 @@ Built as a single **Cloud Run** service with a background sync thread, it contin
 
 ## Architecture
 
-![DataPilot Architecture](datapilot_architecture.svg)
+![DataPilot Architecture](image.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -528,6 +529,19 @@ gcloud services enable \
 - [MCP Specification](https://modelcontextprotocol.io/specification)
 - [MCP SSE Transport](https://modelcontextprotocol.io/docs/concepts/transports)
 - [Claude Desktop MCP Configuration](https://claude.ai/download)
+
+---
+
+## Limitations
+
+- **Single table scope** — the connector is currently configured for one Databricks table (`hackathon_db.inventory_system.products`). Supporting multiple tables requires extending the schema and sync logic.
+- **No authentication on MCP endpoint** — the `/mcp/sse` endpoint does not currently enforce API key auth; it relies on Cloud Run IAM for access control.
+- **Vertex AI Search eventual consistency** — after a write-back, the background sync runs immediately but Vertex AI Search indexing can take a few seconds to reflect the change in search results.
+- **Write column allowlist** — only a fixed set of columns (`stock_count`, `price`, `category`, `product_name`) can be updated via the API. Schema changes require a code update and redeployment.
+- **No pagination on SQL results** — large result sets from `execute_sql` are returned in a single response; very large queries may hit Cloud Run response size limits.
+- **GCS as required intermediary** — the sync pipeline requires a GCS bucket; direct Databricks → Vertex AI Search import is not currently supported.
+- **Databricks token auth only** — the connector uses a static Databricks personal access token. OAuth or service principal auth is not yet implemented.
+- **Cloud Run cold starts** — although `--min-instances=1` keeps one instance warm, scale-out to additional instances may cause brief cold starts under high load.
 
 ---
 

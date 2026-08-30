@@ -42,6 +42,8 @@ Built as a single **Cloud Run** service with a background sync thread, it contin
 
 ## Architecture
 
+![DataPilot Architecture](datapilot_architecture.svg)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    GEMINI ENTERPRISE APP                         │

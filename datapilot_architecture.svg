@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 490" width="1100" height="490">
+  <defs>
+    <pattern id="dotgrid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="1.1" fill="#aab0cc" opacity="0.4"/>
+    </pattern>
+    <filter id="cardshadow" x="-4%" y="-4%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#00000018"/>
+    </filter>
+    <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#8891b0"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="490" fill="#f2f3ff" rx="16"/>
+  <rect width="1100" height="490" fill="url(#dotgrid)" rx="16"/>
+
+  <!-- Page title -->
+  <text x="32" y="26" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#3949ab" opacity="0.75">DataPilot  ·  Databricks × Gemini Architecture</text>
+
+  <!-- ===== MAIN CARD: DataPilot Connector ===== -->
+  <g transform="translate(400, 42)" filter="url(#cardshadow)">
+    <rect width="300" height="140" rx="14" fill="white" stroke="#c8d6ff" stroke-width="1.5"/>
+    <!-- Header band with rounded top corners -->
+    <path d="M0 14 Q0 0 14 0 L286 0 Q300 0 300 14 L300 44 L0 44 Z" fill="#b6ceff"/>
+    <!-- Title -->
+    <text x="14" y="27" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#1a237e">&#x2736; DataPilot Connector</text>
+    <text x="224" y="40" font-family="Roboto, Arial, sans-serif" font-size="9" fill="#3d5afe" font-weight="600" opacity="0.85">Cloud Run</text>
+    <!-- Body text -->
+    <text x="14" y="64" font-family="Roboto, Arial, sans-serif" font-size="11" fill="#455a64">Unified Cloud Run service bridging</text>
+    <text x="14" y="80" font-family="Roboto, Arial, sans-serif" font-size="11" fill="#455a64">Databricks and Gemini Enterprise.</text>
+    <text x="14" y="96" font-family="Roboto, Arial, sans-serif" font-size="11" fill="#455a64">4 REST tools for real-time read,</text>
+    <text x="14" y="112" font-family="Roboto, Arial, sans-serif" font-size="11" fill="#455a64">write, and semantic search.</text>
+    <!-- Icon badges -->
+    <circle cx="20" cy="130" r="9" fill="#4285f4"/>
+    <text x="15.5" y="134" font-family="Arial, sans-serif" font-size="10" fill="white" font-weight="bold">G</text>
+    <circle cx="42" cy="130" r="9" fill="#ff6d00"/>
+    <text x="37.5" y="134" font-family="Arial, sans-serif" font-size="10" fill="white" font-weight="bold">D</text>
+    <circle cx="64" cy="130" r="9" fill="#34a853"/>
+    <text x="59.5" y="134" font-family="Arial, sans-serif" font-size="10" fill="white" font-weight="bold">V</text>
+  </g>
+
+  <!-- ===== DASHED ARROWS from bottom-center of main card (550,182) to sub-card tops ===== -->
+  <line x1="550" y1="182" x2="146" y2="280" stroke="#8891b0" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah)"/>
+  <line x1="550" y1="182" x2="348" y2="280" stroke="#8891b0" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah)"/>
+  <line x1="550" y1="182" x2="550" y2="280" stroke="#8891b0" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah)"/>
+  <line x1="550" y1="182" x2="752" y2="280" stroke="#8891b0" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah)"/>
+  <line x1="550" y1="182" x2="954" y2="280" stroke="#8891b0" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#ah)"/>
+
+  <!-- ===== SUB-CARD 1: Gemini Enterprise App ===== -->
+  <!-- translate(56, 280) → center x=146 -->
+  <g transform="translate(56, 280)" filter="url(#cardshadow)">
+    <rect width="180" height="152" rx="12" fill="white" stroke="#dce6ff" stroke-width="1.5"/>
+    <path d="M0 12 Q0 0 12 0 L168 0 Q180 0 180 12 L180 38 L0 38 Z" fill="#dde8ff"/>
+    <text x="10" y="23" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="11" font-weight="700" fill="#283593">&#x2736; Gemini Enterprise</text>
+    <text x="10" y="56" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">AI assistant interface.</text>
+    <text x="10" y="71" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Calls DataPilot REST tools</text>
+    <text x="10" y="86" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">via Custom Actions with</text>
+    <text x="10" y="101" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">X-API-Key authentication.</text>
+    <circle cx="18" cy="136" r="10" fill="#4285f4"/>
+    <text x="13.5" y="140" font-family="Arial, sans-serif" font-size="11" fill="white" font-weight="bold">G</text>
+  </g>
+
+  <!-- ===== SUB-CARD 2: Databricks SQL ===== -->
+  <!-- translate(258, 280) → center x=348 -->
+  <g transform="translate(258, 280)" filter="url(#cardshadow)">
+    <rect width="180" height="152" rx="12" fill="white" stroke="#dce6ff" stroke-width="1.5"/>
+    <path d="M0 12 Q0 0 12 0 L168 0 Q180 0 180 12 L180 38 L0 38 Z" fill="#dde8ff"/>
+    <text x="10" y="23" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="11" font-weight="700" fill="#283593">&#x2736; Databricks SQL</text>
+    <text x="10" y="56" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Live SQL warehouse. Runs</text>
+    <text x="10" y="71" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">get_schema, execute_sql,</text>
+    <text x="10" y="86" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">update_product, and</text>
+    <text x="10" y="101" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">insert_product tools.</text>
+    <circle cx="18" cy="136" r="10" fill="#ff6d00"/>
+    <text x="13.5" y="140" font-family="Arial, sans-serif" font-size="11" fill="white" font-weight="bold">D</text>
+  </g>
+
+  <!-- ===== SUB-CARD 3: GCS Staging Bucket ===== -->
+  <!-- translate(460, 280) → center x=550 -->
+  <g transform="translate(460, 280)" filter="url(#cardshadow)">
+    <rect width="180" height="152" rx="12" fill="white" stroke="#dce6ff" stroke-width="1.5"/>
+    <path d="M0 12 Q0 0 12 0 L168 0 Q180 0 180 12 L180 38 L0 38 Z" fill="#dde8ff"/>
+    <text x="10" y="23" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="11" font-weight="700" fill="#283593">&#x2736; GCS Staging</text>
+    <text x="10" y="56" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">NDJSON snapshot layer.</text>
+    <text x="10" y="71" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Sync thread exports data</text>
+    <text x="10" y="86" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">every 60 s to bucket</text>
+    <text x="10" y="101" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">databricks-connector-sync.</text>
+    <circle cx="18" cy="136" r="10" fill="#fbbc04"/>
+    <text x="13.5" y="140" font-family="Arial, sans-serif" font-size="11" fill="white" font-weight="bold">B</text>
+  </g>
+
+  <!-- ===== SUB-CARD 4: Vertex AI Search ===== -->
+  <!-- translate(662, 280) → center x=752 -->
+  <g transform="translate(662, 280)" filter="url(#cardshadow)">
+    <rect width="180" height="152" rx="12" fill="white" stroke="#dce6ff" stroke-width="1.5"/>
+    <path d="M0 12 Q0 0 12 0 L168 0 Q180 0 180 12 L180 38 L0 38 Z" fill="#dde8ff"/>
+    <text x="10" y="23" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="11" font-weight="700" fill="#283593">&#x2736; Vertex AI Search</text>
+    <text x="10" y="56" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Semantic search index.</text>
+    <text x="10" y="71" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Indexed from GCS, enables</text>
+    <text x="10" y="86" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">natural-language Gemini</text>
+    <text x="10" y="101" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">queries on inventory data.</text>
+    <circle cx="18" cy="136" r="10" fill="#34a853"/>
+    <text x="13.5" y="140" font-family="Arial, sans-serif" font-size="11" fill="white" font-weight="bold">V</text>
+  </g>
+
+  <!-- ===== SUB-CARD 5: MCP Server ===== -->
+  <!-- translate(864, 280) → center x=954 -->
+  <g transform="translate(864, 280)" filter="url(#cardshadow)">
+    <rect width="180" height="152" rx="12" fill="white" stroke="#dce6ff" stroke-width="1.5"/>
+    <path d="M0 12 Q0 0 12 0 L168 0 Q180 0 180 12 L180 38 L0 38 Z" fill="#dde8ff"/>
+    <text x="10" y="23" font-family="Google Sans, Roboto, Arial, sans-serif" font-size="11" font-weight="700" fill="#283593">&#x2736; MCP Server</text>
+    <text x="10" y="56" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Claude Desktop bridge.</text>
+    <text x="10" y="71" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">Built-in SSE endpoint at</text>
+    <text x="10" y="86" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">/mcp/sse — direct tool</text>
+    <text x="10" y="101" font-family="Roboto, Arial, sans-serif" font-size="10" fill="#546e7a">access without Gemini.</text>
+    <circle cx="18" cy="136" r="10" fill="#7c4dff"/>
+    <text x="13.5" y="140" font-family="Arial, sans-serif" font-size="11" fill="white" font-weight="bold">M</text>
+  </g>
+
+</svg>

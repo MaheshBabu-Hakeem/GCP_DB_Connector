@@ -1,6 +1,36 @@
 <div align="center">
   <img src="datapilot-logo.png" alt="DataPilot Logo" width="180"/>
+
+  <h1>DataPilot</h1>
+  <p><strong>Gemini · Databricks Connector</strong></p>
 </div>
+
+---
+
+## Problem Statement
+
+Enterprise data teams store critical business data — inventory, products, transactions — inside **Databricks** lakehouses. Business users and AI assistants cannot query or update this data directly without writing SQL, setting up ETL pipelines, or waiting for manual exports. This creates a slow, error-prone gap between the data and the people who need it.
+
+Key challenges:
+- **No live AI access** — Gemini Enterprise cannot reach Databricks tables out of the box
+- **Stale data** — manual exports and batch pipelines mean decisions are made on outdated snapshots
+- **No write-back** — AI assistants can read dashboards but cannot update records when a business action is needed
+- **Fragmented tooling** — separate connectors, APIs, and scripts are required for each use case
+
+---
+
+## Solution
+
+**DataPilot** is a unified, always-on Cloud Run service that bridges Databricks and Gemini Enterprise with zero manual intervention.
+
+- **Live SQL queries** — Gemini calls `/tools/execute_sql` and receives real-time results directly from the Databricks SQL warehouse, with PII automatically redacted
+- **Write-back capability** — Gemini calls `/tools/update_product` or `/tools/insert_product` to mutate rows in Databricks and the change is reflected immediately
+- **Schema discovery** — `/tools/get_schema` lets Gemini understand the data model before constructing queries
+- **Continuous background sync** — a background thread pipelines Databricks → GCS (NDJSON) → Vertex AI Search every 60 seconds, keeping a semantic search index fresh for natural-language queries
+- **MCP server built-in** — a native SSE-based MCP endpoint at `/mcp/sse` lets Claude Desktop and other MCP clients connect directly without going through Gemini
+- **Single deployment** — one Cloud Run service handles everything: startup, sync, REST API, and MCP
+
+---
 
 # Databricks Connector for Gemini Enterprise
 
@@ -12,6 +42,8 @@ Built as a single **Cloud Run** service with a background sync thread, it contin
 
 ## Table of Contents
 
+- [Problem Statement](#problem-statement)
+- [Solution](#solution)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Target Audience](#target-audience)
